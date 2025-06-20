@@ -1,27 +1,65 @@
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
+const multer = require("multer");
 
 const app = express();
 
-// ✅ Connect to MongoDB
+// MongoDB connection (replace with your Atlas connection string)
 mongoose.connect("mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0")
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.log(err));
 
+// Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
-// ✅ Middleware setup
-app.use(express.urlencoded({ extended: true })); // to read form data
-app.use(express.static(path.join(__dirname, "public"))); // for CSS/images
-app.set("view engine", "ejs"); // use EJS
-app.set("views", path.join(__dirname, "views")); // set views folder
+// Create schema for MongoDB
+const noteSchema = new mongoose.Schema({
+  title: String,
+  filePath: String
+});
 
-// ✅ Routes
+const Note = mongoose.model("Note", noteSchema);
+
+// Multer setup
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Routes
+
+// Home route
 app.get("/", (req, res) => {
   res.send("Notes Website Running");
 });
 
-// ✅ Start the server
+// Upload form route
+app.get("/upload", (req, res) => {
+  res.render("upload");
+});
+
+// Handle upload
+app.post("/upload", upload.single("pdf"), async (req, res) => {
+  const { title } = req.body;
+  const filePath = req.file.path;
+
+  const newNote = new Note({ title, filePath });
+  await newNote.save();
+
+  res.send("File Uploaded Successfully!");
+});
+
+// Start server
 app.listen(3000, () => {
   console.log("Server running on http://localhost:3000");
 });
