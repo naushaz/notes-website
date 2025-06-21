@@ -17,6 +17,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
+
+
 app.use(session({
   secret: 'mySecretKey',
   resave: false,
