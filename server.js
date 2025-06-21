@@ -3,21 +3,17 @@ const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const session = require("express-session");
-const fs = require('fs');
+const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const app = express();
 
-// ✅ Default fallback for local development
+// ✅ Environment variables
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0";
 
-// ✅ Create uploads folder if not exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-
-// ✅ Connect to MongoDB
+// ✅ MongoDB connection
 mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch(err => {
@@ -25,10 +21,27 @@ mongoose.connect(MONGO_URI)
     process.exit(1);
   });
 
-// ✅ Middleware setup
+// ✅ Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// ✅ Cloudinary Multer Storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "notes_uploads",
+    allowed_formats: ["pdf"],
+    public_id: (req, file) => Date.now() + "-" + file.originalname
+  }
+});
+const upload = multer({ storage: storage });
+
+// ✅ Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(session({
@@ -40,7 +53,7 @@ app.use(session({
 // ✅ MongoDB Schemas
 const noteSchema = new mongoose.Schema({
   title: String,
-  filePath: String,
+  filePath: String,  // Will store Cloudinary URL
   uploaderName: String,
   uploaderEmail: String
 });
@@ -53,18 +66,9 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model("Visitor", visitorSchema);
 
-// ✅ Multer setup
-const multerStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  }
-});
-const upload = multer({ storage: multerStorage });
-
 // ✅ ROUTES
+
+// Visitor entry
 app.get("/", (req, res) => { res.render("visitor"); });
 
 app.post("/visitor", async (req, res) => {
@@ -87,8 +91,8 @@ app.get("/upload", (req, res) => {
 
 app.post("/upload", upload.single("pdf"), async (req, res) => {
   const { title, username, email } = req.body;
-  const filePath = req.file.path;
-  const newNote = new Note({ title, filePath, uploaderName: username, uploaderEmail: email });
+  const fileUrl = req.file.path; // Cloudinary gives URL in .path
+  const newNote = new Note({ title, filePath: fileUrl, uploaderName: username, uploaderEmail: email });
   await newNote.save();
   res.send("File Uploaded Successfully!");
 });
@@ -105,9 +109,9 @@ app.post("/delete/:id", async (req, res) => {
   const { id } = req.params;
   const note = await Note.findById(id);
   if (note) {
-    fs.unlink(note.filePath, (err) => {
-      if (err) console.log("Error deleting file:", err);
-    });
+    // Delete file from Cloudinary
+    const publicId = note.filePath.split("/").pop().split(".")[0]; // Extract public_id from URL
+    await cloudinary.uploader.destroy("notes_uploads/" + publicId);
     await Note.findByIdAndDelete(id);
   }
   res.redirect("/notes");
@@ -130,11 +134,11 @@ app.get("/logout", (req, res) => {
   res.redirect("/home");
 });
 
-// ✅ Start server
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
-
+// ✅ Health check route (to keep Railway alive)
 app.get("/health", (req, res) => {
   res.send("OK");
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });
