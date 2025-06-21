@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const session = require("express-session");
 const fs = require('fs');
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 
@@ -134,6 +135,6 @@ app.get("/logout", (req, res) => {
 });
 
 // Start server
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
