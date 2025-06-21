@@ -6,7 +6,8 @@ const session = require("express-session");
 
 const app = express();
 
-mongoose.connect("mongodb+srv://your-mongodb-connection-string")
+mongoose.connect("mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0")
+
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.log(err));
 
