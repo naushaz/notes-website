@@ -10,7 +10,10 @@
     <% notes.forEach(note => { %>
       <li>
         <strong>Title:</strong> <%= note.title %> <br>
-        <a href="/<%= note.filePath %>" target="_blank">View PDF</a>
+        <a href="/<%= note.filePath %>" target="_blank">View PDF</a> |
+        <form action="/delete/<%= note._id %>" method="POST" style="display:inline;">
+          <button type="submit">Delete</button>
+        </form>
       </li>
       <br>
     <% }); %>

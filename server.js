@@ -1,3 +1,4 @@
+const fs = require("fs");
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
@@ -65,6 +66,24 @@ app.post("/upload", upload.single("pdf"), async (req, res) => {
 
   res.send("File Uploaded Successfully!");
 });
+
+app.post("/delete/:id", async (req, res) => {
+  const { id } = req.params;
+
+  const note = await Note.findById(id);
+  if (note) {
+    // Delete file from uploads folder
+    fs.unlink(note.filePath, (err) => {
+      if (err) console.log("Error deleting file:", err);
+      else console.log("File deleted from uploads folder");
+    });
+
+    // Delete record from database
+    await Note.findByIdAndDelete(id);
+  }
+  res.redirect("/notes");
+});
+
 
 // Start server
 app.listen(3000, () => {
