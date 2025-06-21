@@ -5,26 +5,19 @@ const multer = require("multer");
 const session = require("express-session");
 const fs = require('fs');
 
-const PORT = process.env.PORT;
-if (!PORT) {
-  console.error("PORT environment variable not set");
-  process.exit(1);
-}
-
-const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) {
-  console.error("MONGO_URI not set");
-  process.exit(1);
-}
-
 const app = express();
 
-// Check uploads directory exists (temporary on Railway)
+// ✅ Default fallback for local development
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0";
+
+// ✅ Create uploads folder if not exists
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
+// ✅ Connect to MongoDB
 mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch(err => {
@@ -32,19 +25,19 @@ mongoose.connect(MONGO_URI)
     process.exit(1);
   });
 
+// ✅ Middleware setup
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-
 app.use(session({
   secret: 'mySecretKey',
   resave: false,
   saveUninitialized: true
 }));
 
-// Schemas
+// ✅ MongoDB Schemas
 const noteSchema = new mongoose.Schema({
   title: String,
   filePath: String,
@@ -60,7 +53,7 @@ const visitorSchema = new mongoose.Schema({
 });
 const Visitor = mongoose.model("Visitor", visitorSchema);
 
-// Multer setup
+// ✅ Multer setup
 const multerStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -71,11 +64,8 @@ const multerStorage = multer.diskStorage({
 });
 const upload = multer({ storage: multerStorage });
 
-// ROUTES
-
-app.get("/", (req, res) => {
-  res.render("visitor");
-});
+// ✅ ROUTES
+app.get("/", (req, res) => { res.render("visitor"); });
 
 app.post("/visitor", async (req, res) => {
   const { username, email } = req.body;
@@ -123,9 +113,7 @@ app.post("/delete/:id", async (req, res) => {
   res.redirect("/notes");
 });
 
-app.get("/login", (req, res) => {
-  res.render("login");
-});
+app.get("/login", (req, res) => { res.render("login"); });
 
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
@@ -142,6 +130,7 @@ app.get("/logout", (req, res) => {
   res.redirect("/home");
 });
 
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
