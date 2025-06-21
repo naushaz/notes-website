@@ -1,17 +1,17 @@
-const fs = require('fs');
-const uploadsDir = path.join(__dirname, 'uploads');
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const session = require("express-session");
+const fs = require('fs');
 
 const app = express();
+
+const uploadsDir = path.join(__dirname, 'uploads');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
 
 mongoose.connect("mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0")
 
