@@ -4,7 +4,12 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const session = require("express-session");
 const fs = require('fs');
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ;
+
+if (!PORT) {
+  console.error("PORT environment variable not set");
+  process.exit(1);
+}
 
 const app = express();
 
@@ -14,7 +19,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
-mongoose.connect("mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0")
+ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.log(err));
 
