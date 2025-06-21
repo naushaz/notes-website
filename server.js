@@ -14,7 +14,6 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 mongoose.connect("mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0")
-
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.log(err));
 
@@ -23,8 +22,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-
-
 
 app.use(session({
   secret: 'mySecretKey',
@@ -70,7 +67,7 @@ app.post("/visitor", async (req, res) => {
   const { username, email } = req.body;
   const newVisitor = new Visitor({ username, email });
   await newVisitor.save();
-  req.session.isVisitor = true;  // Mark visitor as entered
+  req.session.isVisitor = true;
   res.redirect("/home");
 });
 
@@ -103,8 +100,6 @@ app.get("/notes", async (req, res) => {
 });
 
 // Delete Route - Admin Only
-const fs = require("fs");
-
 app.post("/delete/:id", async (req, res) => {
   if (!req.session.isAdmin) return res.send("Access Denied");
   const { id } = req.params;
