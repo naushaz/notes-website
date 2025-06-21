@@ -1,34 +1,45 @@
-const fs = require("fs");
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
+const session = require("express-session");
 
 const app = express();
 
-// MongoDB connection (replace with your Atlas connection string)
-mongoose.connect("mongodb+srv://nausheen11begum:N%4011042004@cluster0.bba5fye.mongodb.net/notesDB?retryWrites=true&w=majority&appName=Cluster0")
+mongoose.connect("mongodb+srv://your-mongodb-connection-string")
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.log(err));
 
-// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+app.use(session({
+  secret: 'mySecretKey',
+  resave: false,
+  saveUninitialized: true
+}));
 
-// Create schema for MongoDB
+// Create MongoDB Schemas
 const noteSchema = new mongoose.Schema({
   title: String,
-  filePath: String
+  filePath: String,
+  uploaderName: String,
+  uploaderEmail: String
 });
-
 const Note = mongoose.model("Note", noteSchema);
 
+const visitorSchema = new mongoose.Schema({
+  username: String,
+  email: String,
+  visitTime: { type: Date, default: Date.now }
+});
+const Visitor = mongoose.model("Visitor", visitorSchema);
+
 // Multer setup
-const storage = multer.diskStorage({
+const multerStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
   },
@@ -36,54 +47,86 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname);
   }
 });
+const upload = multer({ storage: multerStorage });
 
-const upload = multer({ storage: storage });
+// ROUTES
 
-// Routes
-
-// Home route
+// Visitor entry before seeing website
 app.get("/", (req, res) => {
-  res.send("Notes Website Running");
+  res.render("visitor");
 });
 
-// Upload form route
+app.post("/visitor", async (req, res) => {
+  const { username, email } = req.body;
+  const newVisitor = new Visitor({ username, email });
+  await newVisitor.save();
+  req.session.isVisitor = true;  // Mark visitor as entered
+  res.redirect("/home");
+});
+
+// Home page after visitor registers
+app.get("/home", (req, res) => {
+  if (!req.session.isVisitor) return res.redirect("/");
+  res.render("home");
+});
+
+// Upload form
 app.get("/upload", (req, res) => {
+  if (!req.session.isVisitor) return res.redirect("/");
   res.render("upload");
 });
-app.get("/notes", async (req, res) => {
-  const notes = await Note.find();
-  res.render("notes", { notes });
-});
 
-
-// Handle upload
 app.post("/upload", upload.single("pdf"), async (req, res) => {
-  const { title } = req.body;
+  const { title, username, email } = req.body;
   const filePath = req.file.path;
-
-  const newNote = new Note({ title, filePath });
+  const newNote = new Note({ title, filePath, uploaderName: username, uploaderEmail: email });
   await newNote.save();
-
   res.send("File Uploaded Successfully!");
 });
 
-app.post("/delete/:id", async (req, res) => {
-  const { id } = req.params;
+// Notes list
+app.get("/notes", async (req, res) => {
+  if (!req.session.isVisitor) return res.redirect("/");
+  const notes = await Note.find();
+  const isAdmin = req.session.isAdmin || false;
+  res.render("notes", { notes, isAdmin });
+});
 
+// Delete Route - Admin Only
+const fs = require("fs");
+
+app.post("/delete/:id", async (req, res) => {
+  if (!req.session.isAdmin) return res.send("Access Denied");
+  const { id } = req.params;
   const note = await Note.findById(id);
   if (note) {
-    // Delete file from uploads folder
     fs.unlink(note.filePath, (err) => {
       if (err) console.log("Error deleting file:", err);
-      else console.log("File deleted from uploads folder");
     });
-
-    // Delete record from database
     await Note.findByIdAndDelete(id);
   }
   res.redirect("/notes");
 });
 
+// Admin Login
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username === "nausheen" && password === "admin123") {
+    req.session.isAdmin = true;
+    res.redirect("/notes");
+  } else {
+    res.send("Invalid credentials");
+  }
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy();
+  res.redirect("/home");
+});
 
 // Start server
 app.listen(3000, () => {
