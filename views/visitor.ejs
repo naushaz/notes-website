@@ -1,14 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Enter Your Details</title>
+  <title>Visitor Entry</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f0f2f5; font-family: 'Poppins', sans-serif; }
+    .container { margin-top: 150px; }
+  </style>
 </head>
 <body>
-  <h1>Welcome! Please Enter Your Details</h1>
-  <form action="/visitor" method="POST">
-    <input type="text" name="username" placeholder="Your Name" required><br><br>
-    <input type="email" name="email" placeholder="Your Email" required><br><br>
-    <button type="submit">Enter Website</button>
-  </form>
+  <div class="container text-center">
+    <h2>Welcome to Notes Sharing Platform</h2>
+    <p>Please enter your details to continue:</p>
+    <form action="/visitor" method="POST" class="w-50 mx-auto">
+      <input type="text" name="username" class="form-control mb-3" placeholder="Your Name" required>
+      <input type="email" name="email" class="form-control mb-3" placeholder="Your Email" required>
+      <button type="submit" class="btn btn-primary px-5">Enter</button>
+    </form>
+  </div>
 </body>
 </html>
