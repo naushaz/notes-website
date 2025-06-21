@@ -4,24 +4,33 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const session = require("express-session");
 const fs = require('fs');
-const PORT = process.env.PORT ;
 
+const PORT = process.env.PORT;
 if (!PORT) {
   console.error("PORT environment variable not set");
   process.exit(1);
 }
 
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error("MONGO_URI not set");
+  process.exit(1);
+}
+
 const app = express();
 
+// Check uploads directory exists (temporary on Railway)
 const uploadsDir = path.join(__dirname, 'uploads');
-
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
- mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -35,7 +44,7 @@ app.use(session({
   saveUninitialized: true
 }));
 
-// Create MongoDB Schemas
+// Schemas
 const noteSchema = new mongoose.Schema({
   title: String,
   filePath: String,
@@ -64,7 +73,6 @@ const upload = multer({ storage: multerStorage });
 
 // ROUTES
 
-// Visitor entry before seeing website
 app.get("/", (req, res) => {
   res.render("visitor");
 });
@@ -77,13 +85,11 @@ app.post("/visitor", async (req, res) => {
   res.redirect("/home");
 });
 
-// Home page after visitor registers
 app.get("/home", (req, res) => {
   if (!req.session.isVisitor) return res.redirect("/");
   res.render("home");
 });
 
-// Upload form
 app.get("/upload", (req, res) => {
   if (!req.session.isVisitor) return res.redirect("/");
   res.render("upload");
@@ -97,7 +103,6 @@ app.post("/upload", upload.single("pdf"), async (req, res) => {
   res.send("File Uploaded Successfully!");
 });
 
-// Notes list
 app.get("/notes", async (req, res) => {
   if (!req.session.isVisitor) return res.redirect("/");
   const notes = await Note.find();
@@ -105,7 +110,6 @@ app.get("/notes", async (req, res) => {
   res.render("notes", { notes, isAdmin });
 });
 
-// Delete Route - Admin Only
 app.post("/delete/:id", async (req, res) => {
   if (!req.session.isAdmin) return res.send("Access Denied");
   const { id } = req.params;
@@ -119,7 +123,6 @@ app.post("/delete/:id", async (req, res) => {
   res.redirect("/notes");
 });
 
-// Admin Login
 app.get("/login", (req, res) => {
   res.render("login");
 });
@@ -139,7 +142,6 @@ app.get("/logout", (req, res) => {
   res.redirect("/home");
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
