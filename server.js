@@ -15,6 +15,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Create schema for MongoDB
 const noteSchema = new mongoose.Schema({
@@ -47,6 +49,11 @@ app.get("/", (req, res) => {
 app.get("/upload", (req, res) => {
   res.render("upload");
 });
+app.get("/notes", async (req, res) => {
+  const notes = await Note.find();
+  res.render("notes", { notes });
+});
+
 
 // Handle upload
 app.post("/upload", upload.single("pdf"), async (req, res) => {

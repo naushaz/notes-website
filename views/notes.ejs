@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Uploaded Notes</title>
+</head>
+<body>
+  <h1>All Uploaded Notes</h1>
+
+  <ul>
+    <% notes.forEach(note => { %>
+      <li>
+        <strong>Title:</strong> <%= note.title %> <br>
+        <a href="/<%= note.filePath %>" target="_blank">View PDF</a>
+      </li>
+      <br>
+    <% }); %>
+  </ul>
+
+</body>
+</html>
